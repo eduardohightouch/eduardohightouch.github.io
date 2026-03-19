@@ -7,8 +7,7 @@ const { useState, useMemo, useEffect, useCallback } = React;
 // ┌─────────────────────────────────────────────────────────────┐
 // │ CONFIGURATION — paste your Apps Script deployment URL here  │
 // └─────────────────────────────────────────────────────────────┘
-const API_URL = "YOUR_APPS_SCRIPT_URL_HERE";
-// Example: "https://script.google.com/macros/s/AKfycbx.../exec"
+const API_URL = "https://script.google.com/macros/s/AKfycbyOPHirWX00nfmU5psbwRjGlLWVv41IbkSc6L0LnuhcvVpqvrilA8u6WylHEzooCYwV0w/exec";
 
 
 // ── API Helper ──

@@ -45,6 +45,10 @@ a { text-decoration: none; }
 }
 .fade-in { animation: fadeIn 0.3s ease; }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Layout */
 .page-wrap { min-height: 100vh; }
 .container { max-width: 940px; margin: 0 auto; padding: 28px 20px; }

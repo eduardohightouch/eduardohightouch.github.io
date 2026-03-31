@@ -47,16 +47,51 @@ const PRODUCT_META = {
 };
 
 const STATUS_OPTIONS = [
-  { v: "not_started", l: "Not Started", c: "var(--ht-gray3)", bg: "var(--ht-gray1)" },
-  { v: "in_progress", l: "In Progress", c: "var(--ht-amber)", bg: "var(--ht-amber-bg)" },
+  { v: "not_started", l: "Not started", c: "var(--ht-gray3)", bg: "var(--ht-gray1)" },
+  { v: "to_start", l: "To start", c: "var(--ht-blue3)", bg: "var(--ht-blue1)" },
+  { v: "scheduled", l: "Scheduled", c: "var(--ht-purple-accent)", bg: "var(--ht-purple1)" },
+  { v: "in_progress", l: "In progress", c: "var(--ht-amber)", bg: "var(--ht-amber-bg)" },
   { v: "complete", l: "Complete", c: "var(--ht-green3)", bg: "var(--ht-green1)" },
   { v: "blocked", l: "Blocked", c: "var(--ht-red)", bg: "var(--ht-red-bg)" },
-  { v: "na", l: "N/A", c: "var(--ht-gray3)", bg: "var(--ht-gray1)" },
+  { v: "out_of_scope", l: "Out of scope", c: "var(--ht-gray3)", bg: "var(--ht-gray1)" },
 ];
 const getS = v => STATUS_OPTIONS.find(s => s.v === v) || STATUS_OPTIONS[0];
 
 function phLabel(phaseId) { var p = PHASES.find(x => x.id === phaseId); return p ? p.icon + " " + p.label : phaseId; }
 function prodLabel(prodId) { if (!prodId || prodId === "Core") return "Core"; var m = PRODUCT_META[prodId]; return m ? m.icon + " " + prodId : prodId; }
+
+// ── Date normalisation ──
+// Converts whatever format Google Sheets returns into YYYY-MM-DD for <input type="date">.
+// Handles: YYYY-MM-DD (pass-through), M/D/YYYY, MM/DD/YYYY, and Sheets serial numbers.
+function parseToISO(val) {
+  if (!val && val !== 0) return "";
+  // ISO datetime string (e.g. "2026-03-31T07:00:00.000Z") — extract date portion directly
+  // from the string to avoid timezone conversion shifting the day
+  if (typeof val === "string" && val.indexOf("T") !== -1) {
+    val = val.split("T")[0];
+  }
+  // Already YYYY-MM-DD (including the result of the split above)
+  if (typeof val === "string" && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  // M/D/YYYY or MM/DD/YYYY
+  if (typeof val === "string" && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(val)) {
+    var parts = val.split("/");
+    return parts[2] + "-" + parts[0].padStart(2, "0") + "-" + parts[1].padStart(2, "0");
+  }
+  // Google Sheets serial number (integer days since Dec 30, 1899)
+  if (typeof val === "number" || (typeof val === "string" && /^\d+$/.test(val))) {
+    var serial = Number(val);
+    if (serial > 59) serial -= 1; // Sheets incorrectly treats 1900 as a leap year
+    var date = new Date(Date.UTC(1899, 11, 30) + serial * 86400000);
+    return date.toISOString().slice(0, 10);
+  }
+  return "";
+}
+function normalizeTaskDates(task) {
+  return Object.assign({}, task, {
+    target_date: parseToISO(task.target_date),
+    completed_date: parseToISO(task.completed_date),
+  });
+}
 
 
 // ── Loading Spinner ──
@@ -77,17 +112,17 @@ function computeOverview(tasks) {
   var pct = total ? Math.round(done / total * 100) : 0;
   var phaseProgress = PHASES.map(function(ph) {
     var pt = tasks.filter(function(t) { return t.phase === ph.id; });
-    var pd = pt.filter(function(t) { return t.status === "complete" || t.status === "na"; }).length;
+    var pd = pt.filter(function(t) { return t.status === "complete" || t.status === "out_of_scope"; }).length;
     return Object.assign({}, ph, { total: pt.length, done: pd, pct: pt.length ? Math.round(pd / pt.length * 100) : 0 });
   });
   var activePhase = phaseProgress.find(function(p) { return p.pct < 100; }) || phaseProgress[phaseProgress.length - 1];
   return {
     total: total, done: done, inProg: inProg, blocked: blocked, pct: pct,
     phaseProgress: phaseProgress, activePhase: activePhase,
-    nextUp: tasks.filter(function(t) { return t.status !== "complete" && t.status !== "na" && (Number(t.is_optional) !== 1); }).slice(0, 3),
+    nextUp: tasks.filter(function(t) { return t.status !== "complete" && t.status !== "out_of_scope" && (Number(t.is_optional) !== 1); }).slice(0, 3),
     wip: tasks.filter(function(t) { return t.status === "in_progress"; }).slice(0, 3),
     blockedItems: tasks.filter(function(t) { return t.status === "blocked"; }).slice(0, 3),
-    workshops: tasks.filter(function(t) { return Number(t.is_workshop) === 1 && t.status !== "complete" && t.status !== "na"; }).slice(0, 3),
+    workshops: tasks.filter(function(t) { return Number(t.is_workshop) === 1 && t.status !== "complete" && t.status !== "out_of_scope"; }).slice(0, 3),
     recentlyDone: tasks.filter(function(t) { return t.status === "complete"; }).slice(-3).reverse(),
     allDone: pct === 100,
   };
@@ -195,8 +230,16 @@ function TaskRow({ task, onUpdate, editable }) {
     setSaving(true);
     var updates = { task_id: task.task_id };
     updates[field] = value;
+    var localMerge = Object.assign({}, updates);
+    if (field === "status") {
+      if (value === "complete" && !task.completed_date) {
+        localMerge.completed_date = new Date().toISOString().slice(0, 10);
+      } else if (value !== "complete") {
+        localMerge.completed_date = "";
+      }
+    }
     api("updateTask", updates).then(function() {
-      onUpdate(Object.assign({}, task, updates));
+      onUpdate(Object.assign({}, task, localMerge));
     }).catch(function(err) {
       alert("Failed to save: " + err.message);
     }).finally(function() {
@@ -215,8 +258,9 @@ function TaskRow({ task, onUpdate, editable }) {
         <div className="text-xs text-light mt-2" style={{ lineHeight: 1.3 }}>{task.description}</div>
       </div>
       <div className="text-xs text-mid">{task.resource_label && (task.resource_url ? <a href={task.resource_url} target="_blank" rel="noreferrer" className="link">{task.resource_label}</a> : <span>{task.resource_label}</span>)}</div>
-      <input placeholder="Owner" value={task.owner || ""} disabled={!editable} onBlur={function(e) { if (e.target.value !== (task.owner || "")) handleUpdate("owner", e.target.value); }} onChange={function(){} /* controlled by onBlur */} defaultValue={task.owner || ""} className={"input--small" + (!editable ? " input--disabled" : "")} />
+      <input placeholder="Owner" defaultValue={task.owner || ""} disabled={!editable} onBlur={function(e) { if (e.target.value !== (task.owner || "")) handleUpdate("owner", e.target.value); }} className={"input--small" + (!editable ? " input--disabled" : "")} />
       <input type="date" value={task.target_date || ""} disabled={!editable} onChange={function(e) { handleUpdate("target_date", e.target.value); }} className={"input--date" + (!editable ? " input--disabled" : "")} />
+      <input type="date" value={task.completed_date || ""} disabled={!editable} onChange={function(e) { handleUpdate("completed_date", e.target.value); }} className={"input--date" + (!editable ? " input--disabled" : "")} />
       <StatusBadge status={task.status || "not_started"} editable={editable} onChange={function(v) { handleUpdate("status", v); }} />
       <button onClick={function() { setExp(!exp); }} className={"task-row__expand" + (exp ? " task-row__expand--open" : "")}>▶</button>
     </div>
@@ -240,8 +284,19 @@ function PhaseSection({ phase, tasks, onUpdate, editable }) {
   var done = tasks.filter(function(t) { return t.status === "complete"; }).length;
   var coreTasks = tasks.filter(function(t) { return String(t.product) === "Core"; });
   var productNames = [];
-  tasks.forEach(function(t) { var p = String(t.product || ""); if (p && p !== "Core" && productNames.indexOf(p) === -1) productNames.push(p); });
-  var prodGroups = productNames.map(function(name) { return { name: name, items: tasks.filter(function(t) { return String(t.product) === name; }) }; });
+  tasks.forEach(function(t) { var p = String(t.product || ""); if (p && p !== "Core" && p !== "pIDR" && productNames.indexOf(p) === -1) productNames.push(p); });
+  var prodGroups = productNames.map(function(name) {
+    var items = tasks.filter(function(t) { return String(t.product) === name; });
+    if (name === "IDR") {
+      var pidrTasks = tasks.filter(function(t) { return String(t.product) === "pIDR"; });
+      if (pidrTasks.length > 0) {
+        var insertIdx = items.findIndex(function(t) { return t.task === "Identity Resolution workshop"; });
+        var after = insertIdx >= 0 ? insertIdx + 1 : items.length;
+        items = items.slice(0, after).concat(pidrTasks).concat(items.slice(after));
+      }
+    }
+    return { name: name, items: items };
+  });
 
   return <div className="phase">
     <div className={"phase__header" + (collapsed ? " phase__header--collapsed" : "")} onClick={function() { setCollapsed(!collapsed); }} style={{ background: ph.bg }}>
@@ -251,8 +306,8 @@ function PhaseSection({ phase, tasks, onUpdate, editable }) {
       <span className="text-sm text-mid fw-500">{done}/{tasks.length} done</span>
     </div>
     {!collapsed && <div>
-      <div className="task-grid"><span>Task</span><span>Resource</span><span>Owner</span><span>Due</span><span>Status</span><span /></div>
-      {coreTasks.map(function(t) { return <TaskRow key={t.task_id} task={t} onUpdate={onUpdate} editable={editable} />; })}
+      <div className="task-grid"><span>Task</span><span>Resource</span><span>Owner</span><span>Target date</span><span>Completed date</span><span>Status</span><span /></div>
+      {phase !== "activation" && coreTasks.map(function(t) { return <TaskRow key={t.task_id} task={t} onUpdate={onUpdate} editable={editable} />; })}
       {prodGroups.map(function(g) { return <div key={g.name}>
         <div className="product-group-header">
           <span>{(PRODUCT_META[g.name] || {}).icon || "📦"}</span> {g.name}
@@ -260,6 +315,7 @@ function PhaseSection({ phase, tasks, onUpdate, editable }) {
         </div>
         {g.items.map(function(t) { return <TaskRow key={t.task_id} task={t} onUpdate={onUpdate} editable={editable} />; })}
       </div>; })}
+      {phase === "activation" && coreTasks.map(function(t) { return <TaskRow key={t.task_id} task={t} onUpdate={onUpdate} editable={editable} />; })}
     </div>}
   </div>;
 }
@@ -405,7 +461,7 @@ function App() {
     setError(null);
     api("getProject", shareKey).then(function(data) {
       setActiveProject(data.project);
-      setActiveTasks(data.tasks || []);
+      setActiveTasks((data.tasks || []).map(normalizeTaskDates));
       setIsAdmin(admin);
       setView(DETAIL);
     }).catch(function(err) {

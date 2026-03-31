@@ -212,7 +212,7 @@ a { text-decoration: none; }
 /* Task grid */
 .task-grid {
   display: grid;
-  grid-template-columns: minmax(0,2.2fr) minmax(0,1fr) 100px 96px 96px 32px;
+  grid-template-columns: minmax(0,2.2fr) minmax(0,1fr) 100px 96px 96px 96px 32px;
   padding: 5px 12px; gap: 6px;
   font-size: 10px; color: var(--ht-text-light);
   text-transform: uppercase; font-weight: 600;
@@ -220,7 +220,7 @@ a { text-decoration: none; }
 }
 .task-row {
   display: grid;
-  grid-template-columns: minmax(0,2.2fr) minmax(0,1fr) 100px 96px 96px 32px;
+  grid-template-columns: minmax(0,2.2fr) minmax(0,1fr) 100px 96px 96px 96px 32px;
   align-items: center; padding: 8px 12px; gap: 6px; font-size: 13px;
 }
 .task-row__border { border-bottom: 1px solid var(--ht-gray1); }

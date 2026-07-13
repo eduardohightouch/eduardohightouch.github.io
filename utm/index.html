@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hightouch Browser SDK Demo — UTM &amp; Campaign Attribution</title>
+<link rel="stylesheet" href="../styles.css">
+
+<script type="text/javascript">
+!function(){var e=window.htevents=window.htevents||[];if(!e.initialize)if(e.invoked)window.console&&console.error&&console.error("Hightouch snippet included twice.");else{e.invoked=!0,e.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on","addSourceMiddleware","addIntegrationMiddleware","setAnonymousId","addDestinationMiddleware"],e.factory=function(t){return function(){var n=Array.prototype.slice.call(arguments);return n.unshift(t),e.push(n),e}};for(var t=0;t<e.methods.length;t++){var n=e.methods[t];e[n]=e.factory(n)}e.load=function(t,n){var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src="https://cdn.hightouch-events.com/browser/release/v1-latest/events.min.js";var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(o,r),e._loadOptions=n,e._writeKey=t},e.SNIPPET_VERSION="0.0.1",
+e.load('6c407d5da34d412e1d18ff7de983422e03b700331d99738d8d62ffcc00e57b9c',{apiHost:'us-east-1.hightouch-events.com'}),
+e.page()}}();
+</script>
+</head>
+<body>
+
+<nav class="top-nav">
+  <a class="brand" href="../">Hightouch <span>Browser SDK</span> Demo</a>
+  <a class="nav-link" href="../">&larr; Back to Event Collection Demo</a>
+</nav>
+
+<header class="page-header">
+  <h1>Campaign Attribution / UTM Demo</h1>
+  <p>
+    Hightouch automatically captures UTM parameters that you pass in URLs. You can also
+    manually pass UTMs into the <code>context.campaign</code> field.
+  </p>
+</header>
+
+<main>
+
+  <div class="callout">
+    When a visitor arrives via a link containing UTM parameters, the Browser SDK auto-parses
+    them into <code>context.campaign</code> on the automatic <code>htevents.page()</code> call
+    that fires when this page loads &mdash; no manual work required.
+  </div>
+
+  <section class="card">
+    <h2>UTM parameters detected on this page load</h2>
+    <p class="hint">
+      Parsed from <code>window.location.search</code> when the page loaded, and mapped to the
+      Hightouch <code>context.campaign</code> fields the SDK would populate automatically.
+    </p>
+    <table class="utm-table">
+      <thead>
+        <tr>
+          <th>URL parameter</th>
+          <th>Value found</th>
+          <th>Hightouch mapping</th>
+        </tr>
+      </thead>
+      <tbody id="utm-table-body">
+        <!-- populated by utm.js -->
+      </tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>Try it: auto-capture in action</h2>
+    <p class="hint">
+      Click an example link below to reload this page with sample UTM parameters appended to the
+      URL. Watch the table above update and a fresh <code>page()</code> call appear in the event log.
+    </p>
+    <div class="example-links" id="example-links">
+      <!-- populated by utm.js -->
+    </div>
+  </section>
+
+  <section class="card">
+    <h3>Manually pass UTMs</h3>
+    <p class="hint">
+      You can also set <code>context.campaign</code> explicitly on any <code>page()</code> or
+      <code>track()</code> call, matching the documented example:
+    </p>
+    <div class="callout note">
+      Auto-captured UTM params from the URL do <strong>not</strong> persist to subsequent calls
+      unless you set them explicitly in <code>context.campaign</code> &mdash; each call only carries
+      the campaign data you pass to it (or, for the initial automatic <code>page()</code> call, what
+      was parsed from the URL at load time).
+    </div>
+    <div class="btn-row">
+      <button id="btn-manual-campaign" type="button">
+        Call page() with explicit context.campaign
+      </button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="log-header-row">
+      <h2>Event log</h2>
+      <button id="btn-clear-log" type="button" class="secondary">Clear</button>
+    </div>
+    <p class="hint">Every SDK call made on this page appears here as it happens.</p>
+    <div id="event-log" class="log-panel">
+      <span class="log-empty">No events yet &mdash; the automatic page() call fires on load.</span>
+    </div>
+  </section>
+
+</main>
+
+<footer class="page-footer">
+  Hightouch Browser SDK static demo &middot; <a href="https://hightouch.com/docs/events/sdks/browser" target="_blank" rel="noopener">Docs</a>
+</footer>
+
+<script src="utm.js"></script>
+</body>
+</html>

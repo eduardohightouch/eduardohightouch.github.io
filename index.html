@@ -6,14 +6,9 @@
 <title>Hightouch Browser SDK Demo</title>
 <link rel="stylesheet" href="styles.css">
 
-<!--
-  Replace YOUR_WRITE_KEY below with the write key from your Hightouch Event Source
-  (Hightouch > Sources > your Event Source > Write key).
-  Docs: https://hightouch.com/docs/events/sdks/browser
--->
 <script type="text/javascript">
 !function(){var e=window.htevents=window.htevents||[];if(!e.initialize)if(e.invoked)window.console&&console.error&&console.error("Hightouch snippet included twice.");else{e.invoked=!0,e.methods=["trackSubmit","trackClick","trackLink","trackForm","pageview","identify","reset","group","track","ready","alias","debug","page","once","off","on","addSourceMiddleware","addIntegrationMiddleware","setAnonymousId","addDestinationMiddleware"],e.factory=function(t){return function(){var n=Array.prototype.slice.call(arguments);return n.unshift(t),e.push(n),e}};for(var t=0;t<e.methods.length;t++){var n=e.methods[t];e[n]=e.factory(n)}e.load=function(t,n){var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src="https://cdn.hightouch-events.com/browser/release/v1-latest/events.min.js";var r=document.getElementsByTagName("script")[0];r.parentNode.insertBefore(o,r),e._loadOptions=n,e._writeKey=t},e.SNIPPET_VERSION="0.0.1",
-e.load('YOUR_WRITE_KEY',{apiHost:'us-east-1.hightouch-events.com'}),
+e.load('6c407d5da34d412e1d18ff7de983422e03b700331d99738d8d62ffcc00e57b9c',{apiHost:'us-east-1.hightouch-events.com'}),
 e.page()}}();
 </script>
 </head>
@@ -38,14 +33,6 @@ e.page()}}();
 </header>
 
 <main>
-
-  <div class="callout">
-    Before events will actually reach Hightouch, open <code>index.html</code> and replace
-    <code>YOUR_WRITE_KEY</code> in the snippet with the write key from your Event Source.
-    Until then, the SDK will still load and the demo will still work locally &mdash; the log panel
-    below reflects what your code is calling, regardless of whether the write key is valid.
-  </div>
-
   <section class="card">
     <h2>Track events</h2>
     <p class="hint">
